@@ -37,12 +37,11 @@ jobs:
     - name: Install syft
       run: |
         sudo curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
-        echo $PATH
         export PATH="/usr/local/bin/:$PATH"
-        echo $PATH
     - name: Generate SPDX SBOM
       run: | 
         syft -o spdx-json ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA} > $(basename ${GITHUB_REPOSITORY,,}).spdx.json
+        ls -l
     - name: Archive SBOM
       uses: actions/upload-artifact@v2
       with:
@@ -58,6 +57,7 @@ jobs:
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
     - name: Re-Tag Image
       run: |
+        docker pull ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}
         docker tag ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA} ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_REF_NAME}
     - name: Push Docker Image
       run: |
