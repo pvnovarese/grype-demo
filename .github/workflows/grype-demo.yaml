@@ -1,14 +1,14 @@
 # This workflow checks out code, builds an image, performs a container image
 # scan, evaluates the image, and promotes it if it passes.
 
-name: Syft Demo
+name: Grype Demo
 
 on: 
-  push:
-    branches:
-      - main
-  schedule:
-    - cron: '38 20 * * 6'
+#  push:
+#    branches:
+#      - main
+#  schedule:
+#    - cron: '42 20 * * 6'
   workflow_dispatch:
     branches:
       - main
@@ -30,37 +30,27 @@ jobs:
       run: |
         docker push ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}
 
-  Generate-SBOM:
-    # I'm doing this manually, you could also use the sbom-action:
-    # https://github.com/anchore/sbom-action
+  Grype-Check:
     needs: Build
     runs-on: ubuntu-latest
     steps:
-    - name: Install syft
+    - name: Install grype
       run: |
-        sudo curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+        sudo curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
         export PATH="/usr/local/bin/:$PATH"
-    - name: Generate SPDX SBOM
+    - name: Generate Vulnerability Report 
       run: | 
-        syft -o spdx-json ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA} > $(basename ${GITHUB_REPOSITORY,,}).spdx.json
-        #
-        # if you want to block packages, you could do it here by tee'ing the 
-        # output into jq, filter for .packages[].name, and then something like 
-        # grep -qv for whatever you want to block.  E.g.:
-        # syft -o spdx-json ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA} | \
-        #   tee $(basename ${GITHUB_REPOSITORY,,}).spdx.json | \
-        #   jq .packages[].name | \
-        #   tr "\n" " " | grep -qv ${BLOCKED_PACKAGE}    
-        #
-    - name: Archive SBOM
+        grype -o json -f high ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA} > $(basename ${GITHUB_REPOSITORY,,}).vuln.json
+    - name: Archive Vulnerability Report
+      if: always()
       uses: actions/upload-artifact@v2
       with:
-        name: sbom.spdx
-        path: ./*.spdx.json
+        name: vuln-report
+        path: ./*.vuln.json
         retention-days: 14
 
   Promote:
-    needs: Generate-SBOM
+    needs: Grype-Check
     runs-on: ubuntu-latest
     steps:
     - name: Login to ghcr.io
