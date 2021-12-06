@@ -64,7 +64,7 @@ pipeline {
             // sh '/var/jenkins_home/bin/syft -o json ${REPOSITORY}:${BUILD_NUMBER} | jq .artifacts[].name | tr "\n" " " | grep -qv curl'
             //
             // for now, instead of blocking, let's just generate a spdx sbom 
-            sh '/var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} > ${REPOSITORY}.spdx.json
+            sh '/var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} > ${REPOSITORY}.spdx.json'
           } catch (err) {
             // if scan fails, clean up (delete the image) and fail the build
             sh """
