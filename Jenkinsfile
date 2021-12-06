@@ -59,7 +59,7 @@ pipeline {
     stage('Analyze with grype') {
       steps {
         // run syft and output to file, we'll archive that at the end
-        sh '/var/jenkins_home/bin/grype -o json -f ${VULN_THRESHOLD} ${REPOSITORY}:${BUILD_NUMBER} > ${JOB_BASE_NAME}.vuln.json'
+        sh '/var/jenkins_home/bin/grype -o json ${REPOSITORY}:${BUILD_NUMBER} > ${JOB_BASE_NAME}.vuln.json'
         //
         // you can do some analysis here, for example you can check for
         // critical vulns and break the pipeline if the image has any.
