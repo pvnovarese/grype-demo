@@ -62,8 +62,7 @@ pipeline {
         // catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         //   sh '/var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} | tee ${JOB_BASE_NAME}.spdx.json | jq .packages[].name | tr "\n" " " | grep -qv ${BLOCKED_PACKAGE}'
         // }
-        script {
-          try {
+        // 
             // run syft, use jq to get the list of artifact names, concatenate 
             // output to a single line and test that curl isn't in that line
             // the grep will fail if curl exists, causing the pipeline to fail
@@ -71,26 +70,16 @@ pipeline {
             // this method uses native syft sbom instead of spdx:
             // sh '/var/jenkins_home/bin/syft -o json ${REPOSITORY}:${BUILD_NUMBER} | jq .artifacts[].name | tr "\n" " " | grep -qv curl'
             //
-            sh """
-              /var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} | \
-              tee ${JOB_BASE_NAME}.spdx.json | \
-              jq .packages[].name | \
-              tr "\n" " " | grep -qv ${BLOCKED_PACKAGE}
-             """
-          } catch (err) {
-            // if scan fails, archive sbom, clean up (delete the image) and fail the build
-            archiveArtifacts artifacts: '*.spdx.json'
-            sh """
-              echo "Blocked package detected in ${REPOSITORY}:${BUILD_NUMBER}, cleaning up and failing build."
-              docker rmi ${REPOSITORY}:${BUILD_NUMBER}
-              exit 1
-            """
-          } // end try/catch
-        } // end script
+        sh """
+          /var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} | \
+          tee ${JOB_BASE_NAME}.spdx.json | \
+          jq .packages[].name | \
+          tr "\n" " " | grep -qv ${BLOCKED_PACKAGE}
+        """
       } // end steps
     } // end stage "analyze with syft"
     
-    stage('Re-tag as prod and push stable image to registry') {
+    stage('Promote and Push Image') {
       steps {
         sh """
           docker tag ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:prod
@@ -105,16 +94,16 @@ pipeline {
         //} // end script
       } // end steps
     } // end stage "retag as prod"
-
-    stage('Clean up') {
-      steps {
-        // archive the sbom
-        archiveArtifacts artifacts: '*.spdx.json'
-        // delete the images locally
-        sh 'docker rmi ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:prod'
-      } // end steps
-    } // end stage "clean up"
-
     
   } // end stages
+  
+  post {
+    always {
+      // archive the sbom
+      archiveArtifacts artifacts: '*.spdx.json'
+      // delete the images locally
+      sh 'docker rmi ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:prod'
+    } // end always
+  } //end post
+      
 } //end pipeline
