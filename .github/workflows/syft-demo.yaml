@@ -51,7 +51,7 @@ jobs:
         path: ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA.spdx.json
         retention-days: 14
 
-Promote:
+  Promote:
     needs: Generate-SBOM
     runs-on: ubuntu-latest
     steps:
