@@ -12,6 +12,8 @@ pipeline {
     DOCKER_HUB = credentials("${HUB_CREDENTIAL}")
     // change repository to your DockerID
     REPOSITORY = "${DOCKER_HUB_USR}/${JOB_BASE_NAME}"
+    // what package do we want to block?
+    BLOCKED_PACKAGE = "vim"
   } // end environment
   
   agent any
@@ -31,6 +33,7 @@ pipeline {
         sh """
           which docker
           which curl
+          which jq
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /var/jenkins_home/bin
           """
       } // end steps
@@ -56,24 +59,26 @@ pipeline {
     
     stage('Analyze with syft') {
       steps {
-        script {
-          try {
+        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+          sh '/var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} | tee ${JOB_BASE_NAME}.spdx.json' | jq .packages[].name | tr "\n" " " | grep -qv ${BLOCKED_PACKAGE}'
+        //script {
+        //  try {
             // run syft, use jq to get the list of artifact names, concatenate 
             // output to a single line and test that curl isn't in that line
             // the grep will fail if curl exists, causing the pipeline to fail
             // sh '/var/jenkins_home/bin/syft -o json ${REPOSITORY}:${BUILD_NUMBER} | jq .artifacts[].name | tr "\n" " " | grep -qv curl'
             //
             // for now, instead of blocking, let's just generate a spdx sbom 
-            sh '/var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} > ${JOB_BASE_NAME}.spdx.json'
-          } catch (err) {
+        //    sh '/var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} > ${JOB_BASE_NAME}.spdx.json'
+        //  } catch (err) {
             // if scan fails, clean up (delete the image) and fail the build
-            sh """
-              echo "Blocked package detected in ${REPOSITORY}:${BUILD_NUMBER}, cleaning up and failing build."
-              docker rmi ${REPOSITORY}:${BUILD_NUMBER}
-              exit 1
-            """
-          } // end try/catch
-        } // end script
+        //    sh """
+        //      echo "Blocked package detected in ${REPOSITORY}:${BUILD_NUMBER}, cleaning up and failing build."
+        //      docker rmi ${REPOSITORY}:${BUILD_NUMBER}
+        //      exit 1
+        //    """
+        //  } // end try/catch
+        //} // end script
       } // end steps
     } // end stage "analyze with syft"
     
