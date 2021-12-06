@@ -1,0 +1,65 @@
+# This workflow checks out code, builds an image, performs a container image
+# scan, evaluates the image, and promotes it if it passes.
+
+name: Syft Demo
+
+on: 
+  #push:
+  #  branches:
+  #    - main
+  #schedule:
+  #  - cron: '38 19 * * 6'
+  workflow_dispatch:
+    branches:
+      - main
+
+  
+jobs:
+
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+    - name: Build Docker Image
+      run: |
+        docker build . --file Dockerfile --tag ghcr.io/  
+      
+    - name: Login to ghcr.io
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
+    - name: Push Docker Image
+      run: |
+        docker push ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}
+
+  Generate-SBOM:
+    needs: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install syft
+      run: |
+        sudo curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+        echo $PATH
+        export PATH="/usr/local/bin/:$PATH"
+        echo $PATH
+    - name: Generate SPDX SBOM
+      run: | 
+        syft -o spdx-json ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA > ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA.spdx.json
+    - name: Archive SBOM
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${GITHUB_REPOSITORY,,}.sbom
+        path: ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA.spdx.json
+        retention-days: 14
+
+Promote:
+    needs: Generate-SBOM
+    runs-on: ubuntu-latest
+    steps:
+    - name: Login to ghcr.io
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
+    - name: Re-Tag Image
+      run: |
+        docker tag ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA} ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_REF_NAME}
+    - name: Push Docker Image
+      run: |
+        docker push ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_REF_NAME}
