@@ -1,5 +1,7 @@
 # Demo: CICD Integrations with Syft
 
+[![Grype Demo](https://github.com/pvnovarese/grype-demo/actions/workflows/grype-demo.yaml/badge.svg)](https://github.com/pvnovarese/grype-demo/actions/workflows/grype-demo.yaml)
+
 This is a very rough set of demos for integrating Syft with varios CICD tools.  If you don't know what Syft is, read up here: https://github.com/anchore/syft
 
 ## Scenario 1: GitHub Workflow
