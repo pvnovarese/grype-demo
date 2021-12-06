@@ -22,21 +22,41 @@ pipeline {
         checkout scm
       } // end steps
     } // end stage "checkout scm"
-    
-    stage('Build image and tag with build number') {
+   
+    stage('Verify Tools') {
       steps {
-        script {
-          dockerImage = docker.build REPOSITORY + ":${BUILD_NUMBER}"
-        } // end script
+        // check for docker and curl,
+        // install/update syft, /var/jenkins_home should be writable 
+        // also if you've set up jenkins in a docker container, this dir should be a persistent volume
+        sh """
+          which docker
+          which curl
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /var/jenkins_home/bin
+          """
       } // end steps
-    } // end stage "build image and tag w build number"
+    } // end stage "Verify Tools"
+    
+    stage('Build and Push Image') {
+      steps {
+        sh """
+          docker login -u ${DOCKER_HUB_USR} -p ${DOCKER_HUB_PSW}
+          docker build -t ${REPOSITORY}:${BUILD_NUMBER} --pull -f ./Dockerfile .
+        """
+      } // end steps
+    } // end stage "build and push"
+    
+    // I don't like using the docker plugin, but if you do:
+    // stage('Build image and tag with build number') {
+    //  steps {
+    //    script {
+    //      dockerImage = docker.build REPOSITORY + ":${BUILD_NUMBER}"
+    //    } // end script
+    //   } // end steps
+    // } // end stage "build image and tag w build number"
     
     stage('Analyze with syft') {
       steps {
         script {
-          // install/update syft, /var/jenkins_home should be writable 
-          // also if you've set up jenkins in a docker container, this dir should be a persistent volume
-          sh 'curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /var/jenkins_home/bin
           try {
             // run syft, use jq to get the list of artifact names, concatenate 
             // output to a single line and test that curl isn't in that line
