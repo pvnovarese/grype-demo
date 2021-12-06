@@ -11,7 +11,7 @@ pipeline {
     // use credentials to set DOCKER_HUB_USR and DOCKER_HUB_PSW
     DOCKER_HUB = credentials("${HUB_CREDENTIAL}")
     // change repository to your DockerID
-    REPOSITORY = "${DOCKER_HUB_USR}/syft-demo"
+    REPOSITORY = "${DOCKER_HUB_USR}/${JOB_BASE_NAME}"
   } // end environment
   
   agent any
@@ -29,8 +29,7 @@ pipeline {
         // install/update syft, /var/jenkins_home should be writable 
         // also if you've set up jenkins in a docker container, this dir should be a persistent volume
         sh """
-          echo ${JOB_NAME}
-          basename ${JOB_NAME}
+          echo ${JOB_BASE_NAME}
           which docker
           which curl
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /var/jenkins_home/bin
@@ -66,7 +65,7 @@ pipeline {
             // sh '/var/jenkins_home/bin/syft -o json ${REPOSITORY}:${BUILD_NUMBER} | jq .artifacts[].name | tr "\n" " " | grep -qv curl'
             //
             // for now, instead of blocking, let's just generate a spdx sbom 
-            sh '/var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} > ${REPOSITORY}.spdx.json'
+            sh '/var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} > ${JOB_BASE_NAME}.spdx.json'
           } catch (err) {
             // if scan fails, clean up (delete the image) and fail the build
             sh """
