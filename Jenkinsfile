@@ -79,7 +79,7 @@ pipeline {
              """
           } catch (err) {
             // if scan fails, archive sbom, clean up (delete the image) and fail the build
-            archieArtifacts artifacts: '*.spdx.json'
+            archiveArtifacts artifacts: '*.spdx.json'
             sh """
               echo "Blocked package detected in ${REPOSITORY}:${BUILD_NUMBER}, cleaning up and failing build."
               docker rmi ${REPOSITORY}:${BUILD_NUMBER}
@@ -109,7 +109,7 @@ pipeline {
     stage('Clean up') {
       steps {
         // archive the sbom
-        archieArtifacts artifacts: '*.spdx.json'
+        archiveArtifacts artifacts: '*.spdx.json'
         // delete the images locally
         sh 'docker rmi ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:prod'
       } // end steps
