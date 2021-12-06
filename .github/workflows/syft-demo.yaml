@@ -42,12 +42,12 @@ jobs:
         echo $PATH
     - name: Generate SPDX SBOM
       run: | 
-        syft -o spdx-json ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA} > ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}.spdx.json
+        syft -o spdx-json ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA} > $(basename ${GITHUB_REPOSITORY,,}).spdx.json
     - name: Archive SBOM
       uses: actions/upload-artifact@v2
       with:
         name: ${GITHUB_REPOSITORY,,}.sbom
-        path: ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA.spdx.json
+        path: $(basename ${GITHUB_REPOSITORY,,}).spdx.json
         retention-days: 14
 
   Promote:
