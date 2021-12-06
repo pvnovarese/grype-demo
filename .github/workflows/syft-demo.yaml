@@ -31,6 +31,8 @@ jobs:
         docker push ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}
 
   Generate-SBOM:
+    # I'm doing this manually, you could also use the sbom-action:
+    # https://github.com/anchore/sbom-action
     needs: Build
     runs-on: ubuntu-latest
     steps:
@@ -41,12 +43,11 @@ jobs:
     - name: Generate SPDX SBOM
       run: | 
         syft -o spdx-json ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA} > $(basename ${GITHUB_REPOSITORY,,}).spdx.json
-        ls -l
     - name: Archive SBOM
       uses: actions/upload-artifact@v2
       with:
-        name: ${GITHUB_REPOSITORY,,}.sbom
-        path: $(basename ${GITHUB_REPOSITORY,,}).spdx.json
+        name: spdx-sbom
+        path: *.spdx.json
         retention-days: 14
 
   Promote:
