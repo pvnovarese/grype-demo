@@ -29,7 +29,6 @@ pipeline {
         // install/update syft, /var/jenkins_home should be writable 
         // also if you've set up jenkins in a docker container, this dir should be a persistent volume
         sh """
-          echo ${JOB_BASE_NAME}
           which docker
           which curl
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /var/jenkins_home/bin
@@ -97,7 +96,7 @@ pipeline {
     stage('Clean up') {
       steps {
         // archive the sbom
-        archiveArtifacts artifacts: 'output/*.spdx.json'
+        archiveArtifacts artifacts: '*.spdx.json'
         // delete the images locally
         sh 'docker rmi ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:prod'
       } // end steps
