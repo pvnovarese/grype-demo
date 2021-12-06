@@ -4,9 +4,9 @@
 FROM alpine:latest
 
 LABEL maintainer="pvn@novarese.net"
-LABEL name="syft-demo"
-LABEL org.opencontainers.image.title="syft-demo"
-LABEL org.opencontainers.image.description="Simple image to test CICD integration with Syft."
+LABEL name="grype-demo"
+LABEL org.opencontainers.image.title="grype-demo"
+LABEL org.opencontainers.image.description="Simple image to test CICD integration with Grype."
 
 HEALTHCHECK --timeout=10s CMD /bin/true || exit 1
 
