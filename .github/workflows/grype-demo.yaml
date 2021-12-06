@@ -4,11 +4,11 @@
 name: Grype Demo
 
 on: 
-#  push:
-#    branches:
-#      - main
-#  schedule:
-#    - cron: '42 20 * * 6'
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '42 20 * * 6'
   workflow_dispatch:
     branches:
       - main
@@ -40,7 +40,7 @@ jobs:
         export PATH="/usr/local/bin/:$PATH"
     - name: Generate Vulnerability Report 
       run: | 
-        grype -o json -f critical ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA} > $(basename ${GITHUB_REPOSITORY,,}).vuln.json
+        grype -o json ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA} > $(basename ${GITHUB_REPOSITORY,,}).vuln.json
         # if we want to break the pipeline if vulnerabilities of a certain
         # severity are found, we can use the -f option e.g.
         # grype -o json -f high image:tag
