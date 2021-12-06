@@ -4,6 +4,8 @@ This is a very rough set of demos for integrating Syft with varios CICD tools.  
 
 ## Scenario 1: GitHub Workflow
 
+Honestly, this is a redundant demo, as there is a pre-canned Action available for your GitHub Workflows: https://github.com/anchore/sbom-action - however, this exercise may be useful in understanding what's going on behind the scenes or as a roadmap to integrating with other tools.
+
 Pretty straightforward, just take a look at the .gitlab/workflows/syft-demo.yaml and edit as needed.  The workflow as-is will build an alpine-based image, generate a SPDX SBOM, archive the SBOM, and push the image to ghcr.io.
 
 There are some commented-out portions that you can use as a roadmap to doing additional stuff, such as checking the SBOM for forbidden packages, etc.
