@@ -12,8 +12,8 @@ pipeline {
     DOCKER_HUB = credentials("${HUB_CREDENTIAL}")
     // change repository to your DockerID
     REPOSITORY = "${DOCKER_HUB_USR}/${JOB_BASE_NAME}"
-    // what package do we want to block? (this is optional, see the "analyze with syft" stage)
-    // BLOCKED_PACKAGE = "curl"
+    // what severity level do we want to gate on? (this is optional, see the "analyze with grype" stage)
+    // VULN_THRESHOLD = "critical"
   } // end environment
   
   agent any
@@ -28,13 +28,12 @@ pipeline {
     stage('Verify Tools') {
       steps {
         // check for docker and curl,
-        // install/update syft, /var/jenkins_home should be writable 
+        // install/update grype, /var/jenkins_home should be writable 
         // also if you've set up jenkins in a docker container, this dir should be a persistent volume
         sh """
           which docker
           which curl
-          which jq
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /var/jenkins_home/bin
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /var/jenkins_home/bin
           """
       } // end steps
     } // end stage "Verify Tools"
@@ -57,29 +56,23 @@ pipeline {
     //   } // end steps
     // } // end stage "build image and tag w build number"
     
-    stage('Analyze with syft') {
+    stage('Analyze with grype') {
       steps {
         // run syft and output to file, we'll archive that at the end
-        sh '/var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} > ${JOB_BASE_NAME}.spdx.json'
+        sh '/var/jenkins_home/bin/grype -o json ${REPOSITORY}:${BUILD_NUMBER} > ${JOB_BASE_NAME}.vuln.json'
         //
         // you can do some analysis here, for example you can check for
-        // forbidden packages and break the pipeline if the image has
-        // (e.g.) curl, sudo, or something else dangerous installed.
+        // critical vulns and break the pipeline if the image has any.
         // There is a variable in the environment section at the top of this
-        // Jenkinsfile, you can uncomment that and set it to whatever and then use this:
+        // Jenkinsfile, you can uncomment that and set it to high, critical, etc
+        // and then use this:
         //
         // sh """
-        //   /var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} | \
-        //   tee ${JOB_BASE_NAME}.spdx.json | \
-        //   jq .packages[].name | \
-        //   tr "\n" " " | grep -qv ${BLOCKED_PACKAGE}
+        //   /var/jenkins_home/bin/grype -o json -f ${VULN_THRESHOLD} ${REPOSITORY}:${BUILD_NUMBER} > ${JOB_BASE_NAME}.vuln.json
         // """
         //
-        // this method uses native syft sbom instead of spdx:
-        // sh '/var/jenkins_home/bin/syft -o json ${REPOSITORY}:${BUILD_NUMBER} | jq .artifacts[].name | tr "\n" " " | grep -qv curl'
-        //
       } // end steps
-    } // end stage "analyze with syft"
+    } // end stage "analyze with grype"
     
     stage('Promote and Push Image') {
       steps {
@@ -102,9 +95,9 @@ pipeline {
   post {
     always {
       // archive the sbom
-      archiveArtifacts artifacts: '*.spdx.json'
+      archiveArtifacts artifacts: '*.vuln.json'
       // delete the images locally
-      sh 'docker rmi ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:prod'
+      sh 'docker image rm ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:prod || failure=1'
     } // end always
   } //end post
       
