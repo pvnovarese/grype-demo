@@ -43,6 +43,15 @@ jobs:
     - name: Generate SPDX SBOM
       run: | 
         syft -o spdx-json ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA} > $(basename ${GITHUB_REPOSITORY,,}).spdx.json
+        #
+        # if you want to block packages, you could do it here by tee'ing the 
+        # output into jq, filter for .packages[].name, and then something like 
+        # grep -qv for whatever you want to block.  E.g.:
+        # syft -o spdx-json ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA} | \
+        #   tee $(basename ${GITHUB_REPOSITORY,,}).spdx.json | \
+        #   jq .packages[].name | \
+        #   tr "\n" " " | grep -qv ${BLOCKED_PACKAGE}    
+        #
     - name: Archive SBOM
       uses: actions/upload-artifact@v2
       with:
