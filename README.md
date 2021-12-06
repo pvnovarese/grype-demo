@@ -2,7 +2,7 @@
 
 [![Grype Demo](https://github.com/pvnovarese/grype-demo/actions/workflows/grype-demo.yaml/badge.svg)](https://github.com/pvnovarese/grype-demo/actions/workflows/grype-demo.yaml)
 
-This is a very rough set of demos for integrating Grype with varios CICD tools.  If you don't know what Syft is, read up here: https://github.com/anchore/grype
+This is a very rough set of demos for integrating Grype with various CICD tools.  If you don't know what Syft is, read up here: https://github.com/anchore/grype
 
 ## Scenario 1: GitHub Workflow
 
