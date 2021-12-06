@@ -29,6 +29,8 @@ pipeline {
         // install/update syft, /var/jenkins_home should be writable 
         // also if you've set up jenkins in a docker container, this dir should be a persistent volume
         sh """
+          echo ${JOB_NAME}
+          basename ${JOB_NAME}
           which docker
           which curl
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /var/jenkins_home/bin
