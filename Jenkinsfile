@@ -60,7 +60,7 @@ pipeline {
     stage('Analyze with syft') {
       steps {
         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-          sh '/var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} | tee ${JOB_BASE_NAME}.spdx.json' | jq .packages[].name | tr "\n" " " | grep -qv ${BLOCKED_PACKAGE}'
+          sh '/var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} | tee ${JOB_BASE_NAME}.spdx.json | jq .packages[].name | tr "\n" " " | grep -qv ${BLOCKED_PACKAGE}'
         }
         //script {
         //  try {
