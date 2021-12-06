@@ -4,11 +4,11 @@
 name: Syft Demo
 
 on: 
-  #push:
-  #  branches:
-  #    - main
-  #schedule:
-  #  - cron: '38 19 * * 6'
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '38 20 * * 6'
   workflow_dispatch:
     branches:
       - main
@@ -46,7 +46,7 @@ jobs:
     - name: Archive SBOM
       uses: actions/upload-artifact@v2
       with:
-        name: spdx-sbom
+        name: sbom.spdx
         path: ./*.spdx.json
         retention-days: 14
 
