@@ -13,7 +13,7 @@ pipeline {
     // change repository to your DockerID
     REPOSITORY = "${DOCKER_HUB_USR}/${JOB_BASE_NAME}"
     // what package do we want to block?
-    BLOCKED_PACKAGE = "vim"
+    BLOCKED_PACKAGE = "curl"
   } // end environment
   
   agent any
