@@ -11,7 +11,7 @@ pipeline {
     // use credentials to set DOCKER_HUB_USR and DOCKER_HUB_PSW
     DOCKER_HUB = credentials("${HUB_CREDENTIAL}")
     // change repository to your DockerID
-    REPOSITORY = "${DOCKER_HUB_USR}/jenkins-syft-demo"
+    REPOSITORY = "${DOCKER_HUB_USR}/syft-demo"
   } // end environment
   
   agent any
@@ -34,11 +34,17 @@ pipeline {
     stage('Analyze with syft') {
       steps {
         script {
+          // install/update syft, /var/jenkins_home should be writable 
+          // also if you've set up jenkins in a docker container, this dir should be a persistent volume
+          sh 'curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /var/jenkins_home/bin
           try {
             // run syft, use jq to get the list of artifact names, concatenate 
             // output to a single line and test that curl isn't in that line
             // the grep will fail if curl exists, causing the pipeline to fail
-            sh '/usr/local/bin/syft -o json ${REPOSITORY}:${BUILD_NUMBER} | jq .artifacts[].name | tr "\n" " " | grep -qv curl'
+            // sh '/var/jenkins_home/bin/syft -o json ${REPOSITORY}:${BUILD_NUMBER} | jq .artifacts[].name | tr "\n" " " | grep -qv curl'
+            //
+            // for now, instead of blocking, let's just generate a spdx sbom 
+            sh '/var/jenkins_home/bin/syft -o spdx-json ${REPOSITORY}:${BUILD_NUMBER} > ${REPOSITORY}.spdx.json
           } catch (err) {
             // if scan fails, clean up (delete the image) and fail the build
             sh """
@@ -57,6 +63,7 @@ pipeline {
           docker tag ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:prod
           docker push ${REPOSITORY}:prod
         """
+        // I don't really like using the docker plug-in, but if you do, something like this:
         //script {
         //  docker.withRegistry('', HUB_CREDENTIAL) {
         //    dockerImage.push('prod') 
@@ -67,8 +74,10 @@ pipeline {
     } // end stage "retag as prod"
 
     stage('Clean up') {
-      // delete the images locally
       steps {
+        // archive the sbom
+        archiveArtifacts artifacts: 'output/*.spdx.json'
+        // delete the images locally
         sh 'docker rmi ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:prod'
       } // end steps
     } // end stage "clean up"
