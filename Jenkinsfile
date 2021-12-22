@@ -14,6 +14,8 @@ pipeline {
     REPOSITORY = "${DOCKER_HUB_USR}/${JOB_BASE_NAME}"
     // what severity level do we want to gate on? (this is optional, see the "analyze with grype" stage)
     // VULN_THRESHOLD = "critical"
+    // use GIT_BRANCH for when we "promote" image:
+    BRANCH_NAME = "${GIT_BRANCH.split("/")[1]}"
   } // end environment
   
   agent any
@@ -41,7 +43,6 @@ pipeline {
     stage('Build Image') {
       steps {
         sh """
-          docker login -u ${DOCKER_HUB_USR} -p ${DOCKER_HUB_PSW}
           docker build -t ${REPOSITORY}:${BUILD_NUMBER} --pull -f ./Dockerfile .
         """
       } // end steps
@@ -77,8 +78,9 @@ pipeline {
     stage('Promote and Push Image') {
       steps {
         sh """
-          docker tag ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:prod
-          docker push ${REPOSITORY}:prod
+          docker login -u ${DOCKER_HUB_USR} -p ${DOCKER_HUB_PSW}
+          docker tag ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:${BRANCH_NAME}
+          docker push ${REPOSITORY}:${BRANCH_NAME}
         """
         // I don't really like using the docker plug-in, but if you do, something like this:
         //script {
@@ -97,7 +99,7 @@ pipeline {
       // archive the sbom
       archiveArtifacts artifacts: '*.vuln.json'
       // delete the images locally
-      sh 'docker image rm ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:prod || failure=1'
+      sh 'docker image rm ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:${BRANCH_NAME} || failure=1'
     } // end always
   } //end post
       
