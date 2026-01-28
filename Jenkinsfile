@@ -35,7 +35,8 @@ pipeline {
         sh """
           which docker
           which curl
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /var/jenkins_home/bin
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b ~/.local/bin
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b ~/.local/bin
           """
       } // end steps
     } // end stage "Verify Tools"
@@ -60,7 +61,9 @@ pipeline {
     stage('Analyze with grype') {
       steps {
         // run syft and output to file, we'll archive that at the end
-        sh '/var/jenkins_home/bin/grype -o json ${REPOSITORY}:${BUILD_NUMBER} > ${JOB_BASE_NAME}.vuln.json'
+        sh '~/.local/bin/syft -o json ${REPOSITORY}:${BUILD_NUMBER} > ${JOB_BASE_NAME}.sbom.json
+        // run grype, save output to file, we'll archive that as well
+        sh '~/.local/bin/grype -o json sbom:${JOB_BASE_NAME}.sbom.json > ${JOB_BASE_NAME}.vuln.json'
         //
         // you can do some analysis here, for example you can check for
         // critical vulns and break the pipeline if the image has any.
@@ -97,7 +100,7 @@ pipeline {
   post {
     always {
       // archive the sbom
-      archiveArtifacts artifacts: '*.vuln.json'
+      archiveArtifacts artifacts: '${JOB_BASE_NAME}.*.json'
       // delete the images locally
       sh 'docker image rm ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:${BRANCH_NAME} || failure=1'
     } // end always
