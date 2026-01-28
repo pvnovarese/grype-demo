@@ -61,7 +61,7 @@ pipeline {
     stage('Analyze with grype') {
       steps {
         // run syft and output to file, we'll archive that at the end
-        sh '~/.local/bin/syft -o json ${REPOSITORY}:${BUILD_NUMBER} > ${JOB_BASE_NAME}.sbom.json
+        sh '~/.local/bin/syft -o json ${REPOSITORY}:${BUILD_NUMBER} > ${JOB_BASE_NAME}.sbom.json'
         // run grype, save output to file, we'll archive that as well
         sh '~/.local/bin/grype -o json sbom:${JOB_BASE_NAME}.sbom.json > ${JOB_BASE_NAME}.vuln.json'
         //
