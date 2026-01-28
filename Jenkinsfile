@@ -100,7 +100,7 @@ pipeline {
   post {
     always {
       // archive the sbom
-      archiveArtifacts artifacts: '${JOB_BASE_NAME}.*.json'
+      archiveArtifacts artifacts: '*.json'
       // delete the images locally
       sh 'docker image rm ${REPOSITORY}:${BUILD_NUMBER} ${REPOSITORY}:${BRANCH_NAME} || failure=1'
     } // end always
