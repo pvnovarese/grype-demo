@@ -1,0 +1,60 @@
+name: Converted Jenkins Pipeline
+
+on:
+  push:
+    branches: ['*']
+  workflow_dispatch:
+    branches:
+      - main
+### I manually added the workflow_dispatch for testing
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    env:
+      REPOSITORY: ghcr.io/${{ github.repository }}
+      BRANCH_NAME: ${{ github.ref_name }}
+      JOB_BASE_NAME: ${{ github.event.repository.name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install syft and grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.REPOSITORY }}:${{ github.run_number }} --pull -f ./Dockerfile .
+
+      - name: Analyze with syft and grype
+        run: |
+          syft -o json ${{ env.REPOSITORY }}:${{ github.run_number }} > ${{ env.JOB_BASE_NAME }}.sbom.json
+          grype -o json sbom:${{ env.JOB_BASE_NAME }}.sbom.json > ${{ env.JOB_BASE_NAME }}.vuln.json
+
+      - name: Archive reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-reports
+          path: |
+            ${{ env.JOB_BASE_NAME }}.sbom.json
+            ${{ env.JOB_BASE_NAME }}.vuln.json
+
+      - name: Promote and push image
+        run: |
+          docker tag ${{ env.REPOSITORY }}:${{ github.run_number }} ${{ env.REPOSITORY }}:${{ env.BRANCH_NAME }}
+          docker push ${{ env.REPOSITORY }}:${{ env.BRANCH_NAME }}
+
+      - name: Cleanup images
+        if: always()
+        run: |
+          docker rmi ${{ env.REPOSITORY }}:${{ github.run_number }} ${{ env.REPOSITORY }}:${{ env.BRANCH_NAME }} || true
