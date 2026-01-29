@@ -1,7 +1,7 @@
 # Dockerfile for sfyt CICD integration demonstration
 # we will use syft to look for curl in the image 
 # and kill the CICD pipeline if we find it
-FROM alpine:3.13.1
+FROM alpine:latest
 
 LABEL maintainer="pvn@novarese.net"
 LABEL name="grype-demo"
@@ -17,4 +17,4 @@ RUN apk add sudo curl && \
     date > /image_build_timestamp
 
 USER nobody
-ENTRYPOINT /bin/false
+ENTRYPOINT [ "/bin/false" ]
