@@ -1,11 +1,12 @@
-name: Converted Jenkins Pipeline
+name: Grok Converted Jenkins Pipeline
 
 on:
-  push:
-    branches: ['*']
+  #push:
+  #  branches: ['*']
   workflow_dispatch:
-    branches:
-      - main
+    inputs:
+      mode:
+        description: 'On-Demand Build and Scan'  
 ### I manually added the workflow_dispatch for testing
 
 jobs:
