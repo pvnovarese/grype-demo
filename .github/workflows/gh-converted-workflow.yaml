@@ -1,0 +1,90 @@
+name: Actions Importer Converted Pipeline
+on:
+  workflow_dispatch:
+env:
+  HUB_CREDENTIAL: docker-hub
+#   # This item has no matching transformer
+#   DOCKER_HUB:
+#   # This item has no matching transformer
+#   REPOSITORY: '"${{ env.DOCKER_HUB_USR }}/${{ env.JOB_BASE_NAME }}"'
+#   # This item has no matching transformer
+#   BRANCH_NAME: '"${GIT_BRANCH.split("/")[1]}"'
+jobs:
+  Checkout_SCM:
+    name: Checkout SCM
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+  Verify_Tools:
+    name: Verify Tools
+    runs-on: ubuntu-latest
+    needs: Checkout_SCM
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: |-
+        which docker
+        which curl
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b ~/.local/bin
+        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b ~/.local/bin
+  Build_Image:
+    name: Build Image
+    runs-on: ubuntu-latest
+    needs: Verify_Tools
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: docker build -t ${{ env.REPOSITORY }}:${{ github.run_id }} --pull -f ./Dockerfile .
+  Analyze_with_grype:
+    name: Analyze with grype
+    runs-on: ubuntu-latest
+    needs: Build_Image
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: "~/.local/bin/syft -o json ${{ env.REPOSITORY }}:${{ github.run_id }} > ${{ env.JOB_BASE_NAME }}.sbom.json"
+    - name: sh
+      shell: bash
+      run: "~/.local/bin/grype -o json sbom:${{ env.JOB_BASE_NAME }}.sbom.json > ${{ env.JOB_BASE_NAME }}.vuln.json"
+  Promote_and_Push_Image:
+    name: Promote and Push Image
+    runs-on: ubuntu-latest
+    needs: Analyze_with_grype
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: |-
+        docker login -u ${{ env.DOCKER_HUB_USR }} -p ${{ env.DOCKER_HUB_PSW }}
+        docker tag ${{ env.REPOSITORY }}:${{ github.run_id }} ${{ env.REPOSITORY }}:${{ env.BRANCH_NAME }}
+        docker push ${{ env.REPOSITORY }}:${{ env.BRANCH_NAME }}
+  Post-Build:
+    if: always()
+    name: Post Build
+    runs-on: ubuntu-latest
+    needs:
+    - Checkout_SCM
+    - Verify_Tools
+    - Build_Image
+    - Analyze_with_grype
+    - Promote_and_Push_Image
+    steps:
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4.1.0
+      if: always()
+      with:
+        path: "*.json"
+    - name: sh
+      shell: bash
+      run: docker image rm ${{ env.REPOSITORY }}:${{ github.run_id }} ${{ env.REPOSITORY }}:${{ env.BRANCH_NAME }} || failure=1
+      if: always()
