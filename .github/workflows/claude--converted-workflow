@@ -1,11 +1,10 @@
-name: Build, Scan, and Push Docker Image
+name: Claud Converted Workflow
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'On-Demand Build and Scan'  
 
 env:
   REGISTRY: ghcr.io
