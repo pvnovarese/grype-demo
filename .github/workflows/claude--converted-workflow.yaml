@@ -1,4 +1,4 @@
-name: Claud Converted Workflow
+name: Claude Converted Workflow
 
 on:
   workflow_dispatch:
