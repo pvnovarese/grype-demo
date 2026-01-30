@@ -1,0 +1,101 @@
+# GitHub Actions workflow converted from Jenkinsfile (pvnovarese/grype-demo)
+# Adds: build, SBOM (syft), vulnerability scan (grype), push to GHCR (ghcr.io)
+#
+# Note: This workflow uses the GITHUB_TOKEN to authenticate to ghcr.io.
+# Make sure the workflow has permission to publish packages:
+# permissions:
+#   packages: write
+#
+# If you prefer to use a PAT, replace ${{ secrets.GITHUB_TOKEN }} with your secret.
+
+name: Copilot Migrated Build, SBOM & Scan
+
+on:
+  #push:
+  #  branches:
+  #    - '**'
+  #pull_request:
+  #  branches:
+  #    - '**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ${{ github.event.repository.name }}
+  REGISTRY: ghcr.io
+  REPOSITORY: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
+  BUILD_TAG: ${{ github.run_number }}
+  BRANCH_TAG: ${{ github.ref_name }}
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (for multi-arch builds, safe to run)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install syft and grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b ~/.local/bin
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b ~/.local/bin
+          echo "PATH before update: $PATH"
+          echo "Adding ~/.local/bin to PATH for steps"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Build image (load into local docker)
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.REPOSITORY }}:${{ env.BUILD_TAG }}
+          push: false
+          load: true
+
+      - name: Create SBOM with syft
+        run: |
+          ~/.local/bin/syft -o json ${{ env.REPOSITORY }}:${{ env.BUILD_TAG }} > ${GITHUB_JOB}.sbom.json
+        env:
+          PATH: ${{ runner.toolsDirectory }}:${HOME}/.local/bin:${{ env.PATH }}
+
+      - name: Scan SBOM with grype
+        run: |
+          ~/.local/bin/grype -o json sbom:${GITHUB_JOB}.sbom.json > ${GITHUB_JOB}.vuln.json
+        env:
+          PATH: ${{ runner.toolsDirectory }}:${HOME}/.local/bin:${{ env.PATH }}
+
+      - name: Upload SBOM and vulnerability report
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-and-vuln
+          path: |
+            ${GITHUB_JOB}.sbom.json
+            ${GITHUB_JOB}.vuln.json
+
+      - name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag image with branch and push to GHCR
+        run: |
+          # tag image with branch name and push both build and branch tags
+          docker tag ${{ env.REPOSITORY }}:${{ env.BUILD_TAG }} ${{ env.REPOSITORY }}:${{ env.BRANCH_TAG }}
+          docker push ${{ env.REPOSITORY }}:${{ env.BUILD_TAG }}
+          docker push ${{ env.REPOSITORY }}:${{ env.BRANCH_TAG }}
+
+      - name: Cleanup local images
+        if: always()
+        run: |
+          docker image rm ${{ env.REPOSITORY }}:${{ env.BUILD_TAG }} ${{ env.REPOSITORY }}:${{ env.BRANCH_TAG }} || truec
