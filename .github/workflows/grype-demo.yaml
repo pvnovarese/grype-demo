@@ -65,7 +65,9 @@ jobs:
         export PATH="/usr/local/bin/:$PATH"
     - name: Generate Vulnerability Report 
       run: | 
-        grype -o json ${{ needs.build.outputs.image }} > $(basename ${GITHUB_REPOSITORY,,}).vuln.json
+        # -o table outputs human-readable to console
+        # -o json outputs archiveable json to file
+        grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json ${{ needs.build.outputs.image }} 
         # if we want to break the pipeline if vulnerabilities of a certain
         # severity are found, we can use the -f option e.g.
         # grype -o json -f high image:tag
