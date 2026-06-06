@@ -113,13 +113,14 @@ pipeline {
           usernameVariable: 'REGISTRY_USER',
           passwordVariable: 'REGISTRY_PASSWORD'
         )]) {
-         script {    
-           sh """
-             docker login -u ${REGISTRY_USER} -p ${REGISTRY_PASSWORD}
-             docker tag ${IMAGE} ${REGISTRY}/${REGISTRY_USER}/${JOB_BASE_NAME}:${BRANCH_NAME}
-             docker push ${REPOSITORY}:${BRANCH_NAME}
-           """
-         } // end script
+          script {    
+            sh """
+              docker login -u ${REGISTRY_USER} -p ${REGISTRY_PASSWORD}
+              docker tag ${IMAGE} ${REGISTRY}/${REGISTRY_USER}/${JOB_BASE_NAME}:${BRANCH_NAME}
+              docker push ${REPOSITORY}:${BRANCH_NAME}
+            """
+          } // end script
+        } // end withCredentials
       //    // I don't really like using the docker plug-in, but if you do, something like this:
       //    //script {
       //    //  docker.withRegistry('', HUB_CREDENTIAL) {
