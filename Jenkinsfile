@@ -106,21 +106,21 @@ pipeline {
     //
     // Congrats, you made it this far, now promote your image or do your QA tests or whatever
     //
-    stage('Promote and Push Image') {
-      steps {
-        withCredentials([usernamePassword(
-          credentialsId: 'docker-hub',
-          usernameVariable: 'REGISTRY_USER',
-          passwordVariable: 'REGISTRY_PASSWORD'
-        )]) {
-          script {    
-            sh """
-              docker login -u ${REGISTRY_USER} -p ${REGISTRY_PASSWORD}
-              docker tag ${IMAGE} ${REGISTRY}/${REGISTRY_USER}/${JOB_BASE_NAME}:${BRANCH_NAME}
-              docker push ${REGISTRY}/${REGISTRY_USER}/${JOB_BASE_NAME}:${BRANCH_NAME}
-            """
-          } // end script
-        } // end withCredentials
+    //stage('Promote and Push Image') {
+    //  steps {
+    //    withCredentials([usernamePassword(
+    //      credentialsId: 'docker-hub',
+    //      usernameVariable: 'REGISTRY_USER',
+    //      passwordVariable: 'REGISTRY_PASSWORD'
+    //    )]) {
+    //      script {    
+    //        sh """
+    //          docker login -u ${REGISTRY_USER} -p ${REGISTRY_PASSWORD}
+    //          docker tag ${IMAGE} ${REGISTRY}/${REGISTRY_USER}/${JOB_BASE_NAME}:${BRANCH_NAME}
+    //          docker push ${REGISTRY}/${REGISTRY_USER}/${JOB_BASE_NAME}:${BRANCH_NAME}
+    //        """
+    //      } // end script
+    //    } // end withCredentials
       //    // I don't really like using the docker plug-in, but if you do, something like this:
       //    //script {
       //    //  docker.withRegistry('', HUB_CREDENTIAL) {
@@ -128,8 +128,8 @@ pipeline {
       //    //    // dockerImage.push takes the argument as a new tag for the image before pushing
       //    //  }
       //    //} // end script
-      } // end steps
-    } // end stage "retag as prod"
+    //  } // end steps
+    //} // end stage "retag as prod"
     
   } // end stages
   
