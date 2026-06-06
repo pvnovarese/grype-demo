@@ -67,6 +67,9 @@ jobs:
         image: ${{ needs.build.outputs.image }}
         registry-username: ${{ github.actor }}
         registry-password: ${{ secrets.GITHUB_TOKEN }}
+        output-file: sbom.spdx
+        dependency-snapshot: true
+        upload-artifact-retention: 14
     - name: Install grype
       run: |
         sudo curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
