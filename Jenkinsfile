@@ -117,7 +117,7 @@ pipeline {
             sh """
               docker login -u ${REGISTRY_USER} -p ${REGISTRY_PASSWORD}
               docker tag ${IMAGE} ${REGISTRY}/${REGISTRY_USER}/${JOB_BASE_NAME}:${BRANCH_NAME}
-              docker push ${REPOSITORY}:${BRANCH_NAME}
+              docker push ${REGISTRY}/${REGISTRY_USER}/${JOB_BASE_NAME}:${BRANCH_NAME}
             """
           } // end script
         } // end withCredentials
