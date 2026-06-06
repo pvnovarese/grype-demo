@@ -19,7 +19,7 @@ env:
 
 jobs:
 
-  Build:
+  build:
     name: Image Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -53,12 +53,20 @@ jobs:
         tags: ${{ steps.set_image.outputs.image }}
         push: true
         
-  Grype-Check:
+  scan:
     name: Grype Image Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [Build]
+    permissions: 
+      contents: write
+    needs: [build]
     steps:
+    - uses: anchore/sbom-action@v0
+      id: sbom
+      with:
+        image: ${{ needs.build.outputs.image }}
+        registry-username: ${{ github.actor }}
+        registry-password: ${{ secrets.GITHUB_TOKEN }}
     - name: Install grype
       run: |
         sudo curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
