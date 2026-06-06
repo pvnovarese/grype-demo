@@ -138,7 +138,7 @@ pipeline {
       // delete the images locally
       // clean up docker login credentials 
       sh '''
-        docker image rm ${IMAGE} ${REGISTRY}/${REGISTRY_USER}/${JOB_BASE_NAME}:${BRANCH_NAME} || failure=1'
+        docker image rm ${IMAGE} ${REGISTRY}/${REGISTRY_USER}/${JOB_BASE_NAME}:${BRANCH_NAME} || failure=1
         docker logout ${REGISTRY} || true
       '''
     } // end always
