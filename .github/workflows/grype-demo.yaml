@@ -119,11 +119,13 @@ jobs:
     #    sbom: sbom.json
     #    fail-build: true
     #    severity-cutoff: critical
-    
-    - name: upload Anchore scan SARIF report
-      uses: github/codeql-action/upload-sarif@v4
-      with:
-        sarif_file: ./$(basename ${GITHUB_REPOSITORY,,}).sarif
+
+    ### if you want to upload to security dashboard, uncomment this
+    ### you also need to set up code scanning: https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/configure-code-scanning/configure-code-scanning  
+    #- name: upload Anchore scan SARIF report
+    #  uses: github/codeql-action/upload-sarif@v4
+    #  with:
+    #    sarif_file: ./$(basename ${GITHUB_REPOSITORY,,}).sarif
     - name: Archive Vulnerability Report
       if: always()
       uses: actions/upload-artifact@v7
