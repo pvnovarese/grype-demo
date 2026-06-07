@@ -72,6 +72,7 @@ jobs:
         upload-artifact-retention: 14
     - name: Install grype
       run: |
+        ls
         sudo curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
         export PATH="/usr/local/bin/:$PATH"
     - name: Generate Vulnerability Report 
