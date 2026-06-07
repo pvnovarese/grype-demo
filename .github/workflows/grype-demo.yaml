@@ -84,6 +84,12 @@ jobs:
       run: |
         syft -o syft-table -o json=$(basename ${GITHUB_REPOSITORY,,}).sbom.json ${{ needs.build.outputs.image }}
         ls
+    - name: "Set SBOM_NAME Environmental Variable"
+      id: set_sbom_name
+      run: |
+        SBOM_NAME="$(basename ${GITHUB_REPOSITORY,,}).sbom.json"
+        echo "sbom_name=${SBOM_NAME,,}" >> "$GITHUB_OUTPUT"                 
+        ### ${SBOM_NAME,,} makes sure it's all lowercase        
     - name: Generate Vulnerability Report 
       ### -o table outputs human-readable to console
       ### -o json outputs archiveable json to file
@@ -99,6 +105,12 @@ jobs:
         ls
         grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json -o sarif=$(basename ${GITHUB_REPOSITORY,,}).sarif file:$(basename ${GITHUB_REPOSITORY,,}).sbom.json 
         ls
+    - name: "Set VULN_NAME Environmental Variable"
+      id: set_vuln_name
+      run: |
+        VULN_NAME="$(basename ${GITHUB_REPOSITORY,,}).vuln.json"
+        echo "vuln_name=${VULN_NAME,,}" >> "$GITHUB_OUTPUT"                 
+        ### ${VULN_NAME,,} makes sure it's all lowercase        
 
     ### Alternatively, you can use the sbom-action and scan-action, 
     ### I prefer using syft and grype directly since you get more 
@@ -128,20 +140,20 @@ jobs:
     #  uses: github/codeql-action/upload-sarif@v4
     #  with:
     #    sarif_file: ./$(basename ${GITHUB_REPOSITORY,,}).sarif
-    #- name: Archive Vuln Report
-    #  if: always()
-    #  uses: actions/upload-artifact@v7
-    #  with:
-    #    name: vuln
-    #    path: $(basename ${GITHUB_REPOSITORY,,}).vuln.json
-    #    retention-days: 14
-    #- name: Archive SBOM
-    #  if: always()
-    #  uses: actions/upload-artifact@v7
-    #  with:
-    #    name: sbom
-    #    path: $(basename ${GITHUB_REPOSITORY,,}).sbom.json
-    #    retention-days: 14
+    - name: Archive Vuln Report
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: vuln
+        path: ${{ env.vuln_name }}
+        retention-days: 14
+    - name: Archive SBOM
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: sbom
+        path: ${{ env.sbom_name }}
+        retention-days: 14
 
   ### if everything succeeds, then you can continue with your normal pipeline activities (promote image, do QA tests, whatever) 
   ##Promote:
