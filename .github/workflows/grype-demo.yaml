@@ -140,19 +140,19 @@ jobs:
     #  uses: github/codeql-action/upload-sarif@v4
     #  with:
     #    sarif_file: ./$(basename ${GITHUB_REPOSITORY,,}).sarif
-    - name: Archive Vuln Report
-      if: always()
-      uses: actions/upload-artifact@v7
-      with:
-        name: vuln
-        path: ${{ env.vuln_name }}
-        retention-days: 14
     - name: Archive SBOM
       if: always()
       uses: actions/upload-artifact@v7
       with:
         name: sbom
-        path: ${{ env.sbom_name }}
+        path: ${{ steps.set_sbom_name.outputs.sbom_name }}
+        retention-days: 14
+    - name: Archive Vuln Report
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: vuln
+        path: ${{ steps.set_vuln_name.outputs.vuln_name }}
         retention-days: 14
 
   ### if everything succeeds, then you can continue with your normal pipeline activities (promote image, do QA tests, whatever) 
