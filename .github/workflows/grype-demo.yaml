@@ -83,7 +83,6 @@ jobs:
       ### input is ${{ needs.build.outputs.image }} which is just the output of the previous build job
       run: |
         syft -o syft-table -o json=$(basename ${GITHUB_REPOSITORY,,}).sbom.json ${{ needs.build.outputs.image }}
-        ls
     - name: Generate Vulnerability Report 
       ### -o table outputs human-readable to console
       ### -o json outputs archiveable json to file
@@ -96,9 +95,10 @@ jobs:
       ### if we don't want to gate on that and instead just want
       ### to generate reports, just remove the -f flag.
       run: |
-        ls
-        grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json -o sarif=$(basename ${GITHUB_REPOSITORY,,}).sarif file:$(basename ${GITHUB_REPOSITORY,,}).sbom.json 
-        ls
+        grype -o table \
+        -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json \
+        -o sarif=$(basename ${GITHUB_REPOSITORY,,}).sarif \
+        file:$(basename ${GITHUB_REPOSITORY,,}).sbom.json 
     - name: "Set Output Environmental Variables"
       id: set_vars
       run: |
@@ -152,10 +152,10 @@ jobs:
         retention-days: 14
     ### if you want to upload to security dashboard, uncomment this
     ### you also need to set up code scanning: https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/configure-code-scanning/configure-code-scanning  
-    - name: upload Anchore scan SARIF report
-      uses: github/codeql-action/upload-sarif@v4
-      with:
-        sarif_file: ${{ steps.set_vars.outputs.sarif_file }}
+    #- name: upload Anchore scan SARIF report
+    #  uses: github/codeql-action/upload-sarif@v4
+    #  with:
+    #    sarif_file: ${{ steps.set_vars.outputs.sarif_file }}
 
 
   ### if everything succeeds, then you can continue with your normal pipeline activities (promote image, do QA tests, whatever) 
