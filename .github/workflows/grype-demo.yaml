@@ -105,11 +105,11 @@ jobs:
         SBOM_FILE="$(basename ${GITHUB_REPOSITORY,,}).sbom.json"
         echo "sbom_file=${SBOM_FILE,,}" >> "$GITHUB_OUTPUT"                 
         ### ${SBOM_FILE,,} makes sure it's all lowercase
-      run: |
+        #
         VULN_FILE="$(basename ${GITHUB_REPOSITORY,,}).vuln.json"
         echo "vuln_file=${VULN_file,,}" >> "$GITHUB_OUTPUT"                 
         ### ${VULN_file,,} makes sure it's all lowercase                
-      run: |
+        #
         SARIF_FILE="$(basename ${GITHUB_REPOSITORY,,}).sbom.json"
         echo "sarif_file=${SARIF_FILE,,}" >> "$GITHUB_OUTPUT"                 
         ### ${SARIF_FILE,,} makes sure it's all lowercase        
