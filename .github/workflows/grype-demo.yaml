@@ -96,6 +96,7 @@ jobs:
       ### to generate reports, just remove the -f flag.
       run: | 
         grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json -o sarif=$(basename ${GITHUB_REPOSITORY,,}).sarif file:$(basename ${GITHUB_REPOSITORY,,}).sbom.json 
+        ls
 
     ### Alternatively, you can use the sbom-action and scan-action, 
     ### I prefer using syft and grype directly since you get more 
