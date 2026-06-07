@@ -78,24 +78,35 @@ jobs:
         format: json
         dependency-snapshot: true
         upload-artifact-retention: 14
-    - name: Generate Vulnerability Report 
-      run: | 
-        # -o table outputs human-readable to console
-        # -o json outputs archiveable json to file
-        ls
-        grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json file:sbom.json 
-        # if we want to break the pipeline if vulnerabilities of a certain
-        # severity are found, we can use the -f option e.g.
-        # grype -o json -f high image:tag
-        # if we don't want to gate on that and instead just want
-        # to generate reports, just remove the -f flag.
-    - name: Archive Vulnerability Report
-      if: always()
-      uses: actions/upload-artifact@v7
+    - name: Generate Vulnerability Repot
+      id: scan
+      uses: anchore/scan-action@v7
       with:
-        name: vuln-report
-        path: ./*.vuln.json
-        retention-days: 14
+        sbom: sbom.json
+        fail-build: true
+        severity-cutoff: critical
+    - name: upload Anchore scan SARIF report
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: ${{ steps.scan.outputs.sarif }}
+    #- name: Generate Vulnerability Report 
+    #  run: | 
+    #    # -o table outputs human-readable to console
+    #    # -o json outputs archiveable json to file
+    #    ls
+    #    grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json file:sbom.json 
+    #    # if we want to break the pipeline if vulnerabilities of a certain
+    #    # severity are found, we can use the -f option e.g.
+    #    # grype -o json -f high image:tag
+    #    # if we don't want to gate on that and instead just want
+    #    # to generate reports, just remove the -f flag.
+    #- name: Archive Vulnerability Report
+    #  if: always()
+    #  uses: actions/upload-artifact@v7
+    #  with:
+    #    name: vuln-report
+    #    path: ./*.vuln.json
+    #    retention-days: 14
 
   ##Promote:
   ##  needs: Grype-Check
