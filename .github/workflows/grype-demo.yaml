@@ -54,7 +54,7 @@ jobs:
         push: true
         
   scan:
-    name: Grype Image Scan
+    name: Image Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions: 
@@ -63,52 +63,82 @@ jobs:
     needs: [build]
     steps:
     - name: Install Tools
+      ### grab the latest versions of syft and grype
+      ### the PATH assignment isn't strictly necessary (/usr/local/bin is in the default path, just further down the list,
+      ### this just moves it up to the first thing we look at)
       run: |
         curl -sSfL https://get.anchore.io/syft | sudo sh -s -- -b /usr/local/bin
         curl -sSfL https://get.anchore.io/grype | sudo sh -s -- -b /usr/local/bin
-        echo ${PATH}
         export PATH="/usr/local/bin/:$PATH"
     - name: Generate SBOM
-      uses: anchore/sbom-action@v0
-      id: sbom
-      with:
-        image: ${{ needs.build.outputs.image }}
-        registry-username: ${{ github.actor }}
-        registry-password: ${{ secrets.GITHUB_TOKEN }}
-        output-file: sbom.json
-        format: json
-        dependency-snapshot: true
-        upload-artifact-retention: 14
-    - name: Generate Vulnerability Repot
-      id: scan
-      uses: anchore/scan-action@v7
-      with:
-        sbom: sbom.json
-        fail-build: true
-        severity-cutoff: critical
+      ### option notes:
+      ### -o syft-table sends human-readable output to console
+      ### -o json generates native syft sbom in json format for the vuln scan and for archiving
+      ###
+      ### if you also need a particular format for audit/regulator (e.g. spdx, cyclonedx), you
+      ### can just add additional -o parameters as needed.
+      ###
+      ### output file is $(basename ${GITHUB_REPOSITORY,,}).sbom.json which will just make sure we
+      ### get an all-lowercase repo name without slashes etc.
+      ### input is ${{ needs.build.outputs.image }} which is just the output of the previous build job
+      run: |
+        syft -o syft-table -o json=$(basename ${GITHUB_REPOSITORY,,}).sbom.json ${{ needs.build.outputs.image }}
+    - name: Generate Vulnerability Report 
+      ### -o table outputs human-readable to console
+      ### -o json outputs archiveable json to file
+      ### -o sarif outputs a format that the github security dashboard uses
+      ### input and output files follow the format we used in the SBOM generation step above.
+      ###
+      ### if we want to break the pipeline if vulnerabilities of a certain
+      ### severity are found, we can use the -f option e.g.
+      ### grype -o json -f high image:tag
+      ### if we don't want to gate on that and instead just want
+      ### to generate reports, just remove the -f flag.
+      run: | 
+        grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json -o sarif=$(basename ${GITHUB_REPOSITORY,,}).sarif file:$(basename ${GITHUB_REPOSITORY,,}).sbom.json 
+
+    ### Alternatively, you can use the sbom-action and scan-action, 
+    ### I prefer using syft and grype directly since you get more 
+    ### control (particularly with outputs)
+    #- name: Generate SBOM
+    #  uses: anchore/sbom-action@v0
+    #  id: sbom
+    #  with:
+    #    image: ${{ needs.build.outputs.image }}
+    #    registry-username: ${{ github.actor }}
+    #    registry-password: ${{ secrets.GITHUB_TOKEN }}
+    #    output-file: sbom.json
+    #    format: json
+    #    dependency-snapshot: true
+    #    upload-artifact-retention: 14
+    #- name: Generate Vulnerability Repot
+    #  id: scan
+    #  uses: anchore/scan-action@v7
+    #  with:
+    #    sbom: sbom.json
+    #    fail-build: true
+    #    severity-cutoff: critical
+    
     - name: upload Anchore scan SARIF report
       uses: github/codeql-action/upload-sarif@v4
       with:
-        sarif_file: ${{ steps.scan.outputs.sarif }}
-    #- name: Generate Vulnerability Report 
-    #  run: | 
-    #    # -o table outputs human-readable to console
-    #    # -o json outputs archiveable json to file
-    #    ls
-    #    grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json file:sbom.json 
-    #    # if we want to break the pipeline if vulnerabilities of a certain
-    #    # severity are found, we can use the -f option e.g.
-    #    # grype -o json -f high image:tag
-    #    # if we don't want to gate on that and instead just want
-    #    # to generate reports, just remove the -f flag.
-    #- name: Archive Vulnerability Report
-    #  if: always()
-    #  uses: actions/upload-artifact@v7
-    #  with:
-    #    name: vuln-report
-    #    path: ./*.vuln.json
-    #    retention-days: 14
+        sarif_file: ./$(basename ${GITHUB_REPOSITORY,,}).sarif
+    - name: Archive Vulnerability Report
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: vuln-report
+        path: ./$(basename ${GITHUB_REPOSITORY,,}).vuln.json
+        retention-days: 14
+    - name: Archive SBOM
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: sbom
+        path: ./$(basename ${GITHUB_REPOSITORY,,}).sbom.json
+        retention-days: 14
 
+  ### if everything succeeds, then you can continue with your normal pipeline activities (promote image, do QA tests, whatever) 
   ##Promote:
   ##  needs: Grype-Check
   ##  runs-on: ubuntu-latest
