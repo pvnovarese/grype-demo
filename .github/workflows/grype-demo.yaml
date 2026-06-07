@@ -61,7 +61,14 @@ jobs:
       contents: write
     needs: [build]
     steps:
-    - uses: anchore/sbom-action@v0
+    - name: Install Tools
+      run: |
+        curl -sSfL https://get.anchore.io/syft | sudo sh -s -- -b /usr/local/bin
+        curl -sSfL https://get.anchore.io/grype | sudo sh -s -- -b /usr/local/bin
+        echo ${PATH}
+        export PATH="/usr/local/bin/:$PATH"
+    - name: Generate SBOM
+      uses: anchore/sbom-action@v0
       id: sbom
       with:
         image: ${{ needs.build.outputs.image }}
@@ -70,16 +77,11 @@ jobs:
         output-file: sbom.spdx
         dependency-snapshot: true
         upload-artifact-retention: 14
-    - name: Install grype
-      run: |
-        ls
-        sudo curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-        export PATH="/usr/local/bin/:$PATH"
     - name: Generate Vulnerability Report 
       run: | 
         # -o table outputs human-readable to console
         # -o json outputs archiveable json to file
-        grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json ${{ needs.build.outputs.image }} 
+        grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json file:sbom.spdx 
         # if we want to break the pipeline if vulnerabilities of a certain
         # severity are found, we can use the -f option e.g.
         # grype -o json -f high image:tag
