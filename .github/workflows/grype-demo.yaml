@@ -74,14 +74,16 @@ jobs:
         image: ${{ needs.build.outputs.image }}
         registry-username: ${{ github.actor }}
         registry-password: ${{ secrets.GITHUB_TOKEN }}
-        output-file: sbom.spdx
+        output-file: sbom.json
+        format: json
         dependency-snapshot: true
         upload-artifact-retention: 14
     - name: Generate Vulnerability Report 
       run: | 
         # -o table outputs human-readable to console
         # -o json outputs archiveable json to file
-        grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json file:sbom.spdx 
+        ls
+        grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json file:sbom.json 
         # if we want to break the pipeline if vulnerabilities of a certain
         # severity are found, we can use the -f option e.g.
         # grype -o json -f high image:tag
