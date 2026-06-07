@@ -59,6 +59,7 @@ jobs:
     timeout-minutes: 15
     permissions: 
       contents: write
+      security-events: read
     needs: [build]
     steps:
     - name: Install Tools
