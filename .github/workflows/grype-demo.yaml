@@ -83,6 +83,7 @@ jobs:
       ### input is ${{ needs.build.outputs.image }} which is just the output of the previous build job
       run: |
         syft -o syft-table -o json=$(basename ${GITHUB_REPOSITORY,,}).sbom.json ${{ needs.build.outputs.image }}
+        ls
     - name: Generate Vulnerability Report 
       ### -o table outputs human-readable to console
       ### -o json outputs archiveable json to file
@@ -94,7 +95,8 @@ jobs:
       ### grype -o json -f high image:tag
       ### if we don't want to gate on that and instead just want
       ### to generate reports, just remove the -f flag.
-      run: | 
+      run: |
+        ls
         grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json -o sarif=$(basename ${GITHUB_REPOSITORY,,}).sarif file:$(basename ${GITHUB_REPOSITORY,,}).sbom.json 
         ls
 
@@ -131,14 +133,14 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: vuln-report
-        path: ./$(basename ${GITHUB_REPOSITORY,,}).vuln.json
+        path: $(basename ${GITHUB_REPOSITORY,,}).vuln.json
         retention-days: 14
     - name: Archive SBOM
       if: always()
       uses: actions/upload-artifact@v7
       with:
         name: sbom
-        path: ./$(basename ${GITHUB_REPOSITORY,,}).sbom.json
+        path: $(basename ${GITHUB_REPOSITORY,,}).sbom.json
         retention-days: 14
 
   ### if everything succeeds, then you can continue with your normal pipeline activities (promote image, do QA tests, whatever) 
