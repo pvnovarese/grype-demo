@@ -84,12 +84,6 @@ jobs:
       run: |
         syft -o syft-table -o json=$(basename ${GITHUB_REPOSITORY,,}).sbom.json ${{ needs.build.outputs.image }}
         ls
-    - name: "Set SBOM_NAME Environmental Variable"
-      id: set_sbom_name
-      run: |
-        SBOM_NAME="$(basename ${GITHUB_REPOSITORY,,}).sbom.json"
-        echo "sbom_name=${SBOM_NAME,,}" >> "$GITHUB_OUTPUT"                 
-        ### ${SBOM_NAME,,} makes sure it's all lowercase        
     - name: Generate Vulnerability Report 
       ### -o table outputs human-readable to console
       ### -o json outputs archiveable json to file
@@ -105,12 +99,20 @@ jobs:
         ls
         grype -o table -o json=$(basename ${GITHUB_REPOSITORY,,}).vuln.json -o sarif=$(basename ${GITHUB_REPOSITORY,,}).sarif file:$(basename ${GITHUB_REPOSITORY,,}).sbom.json 
         ls
-    - name: "Set VULN_NAME Environmental Variable"
-      id: set_vuln_name
+    - name: "Set Output Environmental Variables"
+      id: set_vars
       run: |
-        VULN_NAME="$(basename ${GITHUB_REPOSITORY,,}).vuln.json"
-        echo "vuln_name=${VULN_NAME,,}" >> "$GITHUB_OUTPUT"                 
-        ### ${VULN_NAME,,} makes sure it's all lowercase        
+        SBOM_FILE="$(basename ${GITHUB_REPOSITORY,,}).sbom.json"
+        echo "sbom_file=${SBOM_FILE,,}" >> "$GITHUB_OUTPUT"                 
+        ### ${SBOM_FILE,,} makes sure it's all lowercase
+      run: |
+        VULN_FILE="$(basename ${GITHUB_REPOSITORY,,}).vuln.json"
+        echo "vuln_file=${VULN_file,,}" >> "$GITHUB_OUTPUT"                 
+        ### ${VULN_file,,} makes sure it's all lowercase                
+      run: |
+        SARIF_FILE="$(basename ${GITHUB_REPOSITORY,,}).sbom.json"
+        echo "sarif_file=${SARIF_FILE,,}" >> "$GITHUB_OUTPUT"                 
+        ### ${SARIF_FILE,,} makes sure it's all lowercase        
 
     ### Alternatively, you can use the sbom-action and scan-action, 
     ### I prefer using syft and grype directly since you get more 
@@ -134,26 +136,27 @@ jobs:
     #    fail-build: true
     #    severity-cutoff: critical
 
-    ### if you want to upload to security dashboard, uncomment this
-    ### you also need to set up code scanning: https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/configure-code-scanning/configure-code-scanning  
-    #- name: upload Anchore scan SARIF report
-    #  uses: github/codeql-action/upload-sarif@v4
-    #  with:
-    #    sarif_file: ./$(basename ${GITHUB_REPOSITORY,,}).sarif
     - name: Archive SBOM
       if: always()
       uses: actions/upload-artifact@v7
       with:
         name: sbom
-        path: ${{ steps.set_sbom_name.outputs.sbom_name }}
+        path: ${{ steps.set_vars.outputs.sbom_file }}
         retention-days: 14
     - name: Archive Vuln Report
       if: always()
       uses: actions/upload-artifact@v7
       with:
         name: vuln
-        path: ${{ steps.set_vuln_name.outputs.vuln_name }}
+        path: ${{ steps.set_vars.outputs.vuln_file }}
         retention-days: 14
+    ### if you want to upload to security dashboard, uncomment this
+    ### you also need to set up code scanning: https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/configure-code-scanning/configure-code-scanning  
+    - name: upload Anchore scan SARIF report
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: ${{ steps.set_vars.outputs.sarif_file }}
+
 
   ### if everything succeeds, then you can continue with your normal pipeline activities (promote image, do QA tests, whatever) 
   ##Promote:
