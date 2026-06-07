@@ -1,7 +1,7 @@
 # Dockerfile for sfyt CICD integration demonstration
 # we will use syft to look for curl in the image 
 # and kill the CICD pipeline if we find it
-FROM alpine:latest
+FROM node:20-alpine
 
 LABEL maintainer="pvn@novarese.net"
 LABEL name="grype-demo"
