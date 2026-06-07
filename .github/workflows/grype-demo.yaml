@@ -107,7 +107,7 @@ jobs:
         ### ${SBOM_FILE,,} makes sure it's all lowercase
         #
         VULN_FILE="$(basename ${GITHUB_REPOSITORY,,}).vuln.json"
-        echo "vuln_file=${VULN_file,,}" >> "$GITHUB_OUTPUT"                 
+        echo "vuln_file=${VULN_FILE,,}" >> "$GITHUB_OUTPUT"                 
         ### ${VULN_file,,} makes sure it's all lowercase                
         #
         SARIF_FILE="$(basename ${GITHUB_REPOSITORY,,}).sbom.json"
